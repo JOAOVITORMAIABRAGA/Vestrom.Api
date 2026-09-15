@@ -1,6 +1,9 @@
-@Vestrom.Api_HostAddress = http://localhost:5229
+@Vestrom_Api_HostAddress = http://localhost:5229
 
-GET {{Vestrom.Api_HostAddress}}/weatherforecast/
+GET {{Vestrom_Api_HostAddress}}/api/public/status
 Accept: application/json
 
 ###
+
+GET {{Vestrom_Api_HostAddress}}/api/public/health
+Accept: application/json
