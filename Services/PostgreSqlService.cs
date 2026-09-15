@@ -32,30 +32,68 @@ public sealed class PostgreSqlService(IConfiguration configuration)
     {
         await using var conn = new NpgsqlConnection(ConnectionString);
         await conn.OpenAsync(ct);
+
         const string sql = """
             SELECT d.datname, pg_database_size(d.datname), 0::int
-            FROM pg_database d WHERE d.datallowconn ORDER BY d.datname;
+            FROM pg_database d
+            WHERE d.datallowconn
+            ORDER BY d.datname;
             """;
+
         await using var cmd = new NpgsqlCommand(sql, conn);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
+
         var list = new List<DatabaseInfo>();
+
         while (await reader.ReadAsync(ct))
         {
             var name = reader.GetString(0);
-            list.Add(new DatabaseInfo(name, name, 0, FormatBytes(reader.GetInt64(1)), "online", DateTimeOffset.UtcNow.ToString("O")));
+
+            list.Add(new DatabaseInfo(
+                name,
+                name,
+                0,
+                FormatBytes(reader.GetInt64(1)),
+                "online",
+                DateTimeOffset.UtcNow.ToString("O")
+            ));
         }
-        foreach (var db in list)
+
+        for (var i = 0; i < list.Count; i++)
         {
+            var db = list[i];
+
             try
             {
-                await using var dbConn = new NpgsqlConnection(DatabaseConnection(db.Id));
+                await using var dbConn =
+                    new NpgsqlConnection(DatabaseConnection(db.Id));
+
                 await dbConn.OpenAsync(ct);
-                await using var countCmd = new NpgsqlCommand("SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE c.relkind='r' AND n.nspname NOT IN ('pg_catalog','information_schema')", dbConn);
-                var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct), CultureInfo.InvariantCulture);
-                list[list.IndexOf(db)] = db with { Tables = count };
+
+                await using var countCmd = new NpgsqlCommand(
+                    """
+                    SELECT count(*)
+                    FROM pg_class c
+                    JOIN pg_namespace n ON n.oid = c.relnamespace
+                    WHERE c.relkind = 'r'
+                    AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+                    """,
+                    dbConn
+                );
+
+                var count = Convert.ToInt32(
+                    await countCmd.ExecuteScalarAsync(ct),
+                    CultureInfo.InvariantCulture
+                );
+
+                list[i] = db with { Tables = count };
             }
-            catch { }
+            catch
+            {
+                // Mantém o banco listado mesmo se não for possível consultar seus metadados.
+            }
         }
+
         return list.ToArray();
     }
 
