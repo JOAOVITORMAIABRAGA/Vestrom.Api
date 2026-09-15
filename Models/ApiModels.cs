@@ -1,0 +1,21 @@
+namespace Vestrom.Api.Models;
+
+public record ResourceMetric(double Current, string Unit, double Percent, double[] History);
+public record ServiceInfo(string Name, string Status, string? Version = null, string? Uptime = null, string? Detail = null);
+public record DatabaseInfo(string Id, string Name, int Tables, string Size, string Status, string? UpdatedAt = null);
+public record ServerInfo(string Host, string Os, string Architecture, string Cpu, string Ram, string Storage, string Uptime, ServiceInfo[] Services);
+public record PostgresInfo(string Name, string Status, string Version, string Uptime, int ActiveConnections, int MaxConnections, int Databases);
+public record BatteryInfo(int? Percent, string Status, double? TemperatureC);
+public record DashboardData(ServerInfo Server, PostgresInfo Postgres, ResourceBundle Resources, DatabaseInfo[] Databases, BatteryInfo Battery, double? TemperatureC, DateTimeOffset Timestamp);
+public record ResourceBundle(ResourceMetric Cpu, ResourceMetric Ram, ResourceMetric Storage);
+public record TableInfo(string Name, string Schema, long Rows, string Size, int Columns);
+public record ViewInfo(string Name, string Schema, string Definition);
+public record FunctionInfo(string Name, string Schema, string Returns, string Language);
+public record RoleInfo(string Name, string[] Attributes, bool CanLogin);
+public record DatabaseDetail(DatabaseInfo Database, string[] Schemas, TableInfo[] Tables, ViewInfo[] Views, FunctionInfo[] Functions, RoleInfo[] Roles);
+public record QueryColumn(string Name, string Type);
+public record QueryResult(QueryColumn[] Columns, IReadOnlyList<Dictionary<string, object?>> Rows, int RowCount, long DurationMs);
+public record LoginRequest(string Username, string Password);
+public record AuthUser(string Id, string Username, string Role, string DisplayName);
+public record Session(string Token, AuthUser User);
+public record LogEntry(string Id, DateTimeOffset Timestamp, string Level, string Service, string Message);
